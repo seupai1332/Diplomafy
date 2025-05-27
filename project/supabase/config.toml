@@ -1,0 +1,165 @@
+# Este é o arquivo de configuração do Supabase para o projeto Diplomafy
+
+[auth]
+# Configurações de autenticação
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://localhost:3000"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+# Configurações de autenticação por email
+enable_signup = true
+double_confirm_changes = true
+enable_confirmations = false
+
+[auth.external.github]
+enabled = false
+
+[auth.external.google]
+enabled = false
+
+[storage]
+file_size_limit = "50MB"
+
+# Configuração das tabelas do banco de dados
+[[tables]]
+name = "profiles"
+columns = [
+  { name = "id", type = "uuid", primary = true },
+  { name = "company_name", type = "text" },
+  { name = "role", type = "text", enum = ["admin", "user"] },
+  { name = "subscription_plan", type = "text", enum = ["free", "pro", "enterprise"] },
+  { name = "subscription_status", type = "text", enum = ["active", "inactive", "cancelled"] },
+  { name = "updated_at", type = "timestamp with time zone" }
+]
+
+[[tables]]
+name = "certificates"
+columns = [
+  { name = "id", type = "uuid", primary = true },
+  { name = "user_id", type = "uuid", references = "profiles.id" },
+  { name = "title", type = "text" },
+  { name = "description", type = "text", nullable = true },
+  { name = "template_id", type = "uuid", references = "templates.id" },
+  { name = "created_at", type = "timestamp with time zone", default = "now()" },
+  { name = "updated_at", type = "timestamp with time zone", default = "now()" },
+  { name = "status", type = "text", enum = ["draft", "published", "archived"] }
+]
+
+[[tables]]
+name = "recipients"
+columns = [
+  { name = "id", type = "uuid", primary = true },
+  { name = "user_id", type = "uuid", references = "profiles.id" },
+  { name = "certificate_id", type = "uuid", references = "certificates.id" },
+  { name = "email", type = "text" },
+  { name = "name", type = "text" },
+  { name = "sent_at", type = "timestamp with time zone", nullable = true },
+  { name = "viewed_at", type = "timestamp with time zone", nullable = true },
+  { name = "status", type = "text", enum = ["pending", "sent", "viewed"] }
+]
+
+[[tables]]
+name = "templates"
+columns = [
+  { name = "id", type = "uuid", primary = true },
+  { name = "user_id", type = "uuid", references = "profiles.id" },
+  { name = "name", type = "text" },
+  { name = "description", type = "text", nullable = true },
+  { name = "html_content", type = "text" },
+  { name = "created_at", type = "timestamp with time zone", default = "now()" },
+  { name = "updated_at", type = "timestamp with time zone", default = "now()" },
+  { name = "is_public", type = "boolean", default = false }
+]
+
+# Políticas de segurança
+[[policies]]
+name = "Profiles are viewable by users who created them"
+table = "profiles"
+operation = "select"
+expression = "auth.uid() = id"
+
+[[policies]]
+name = "Users can insert their own profile"
+table = "profiles"
+operation = "insert"
+expression = "auth.uid() = id"
+
+[[policies]]
+name = "Users can update own profile"
+table = "profiles"
+operation = "update"
+expression = "auth.uid() = id"
+
+[[policies]]
+name = "Certificates are viewable by owner"
+table = "certificates"
+operation = "select"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can insert own certificates"
+table = "certificates"
+operation = "insert"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can update own certificates"
+table = "certificates"
+operation = "update"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can delete own certificates"
+table = "certificates"
+operation = "delete"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Recipients are viewable by certificate owner"
+table = "recipients"
+operation = "select"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can insert recipients for own certificates"
+table = "recipients"
+operation = "insert"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can update own recipients"
+table = "recipients"
+operation = "update"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can delete own recipients"
+table = "recipients"
+operation = "delete"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Templates are viewable by owner or if public"
+table = "templates"
+operation = "select"
+expression = "auth.uid() = user_id OR is_public = true"
+
+[[policies]]
+name = "Users can insert own templates"
+table = "templates"
+operation = "insert"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can update own templates"
+table = "templates"
+operation = "update"
+expression = "auth.uid() = user_id"
+
+[[policies]]
+name = "Users can delete own templates"
+table = "templates"
+operation = "delete"
+expression = "auth.uid() = user_id" 
